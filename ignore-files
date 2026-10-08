@@ -11,8 +11,8 @@ Jellyfin Server Media
 Android
 Syncthing/Sync/*
 Syncthing/Sync/**/*
-workspace/lm-postinstall
-.custom/lm-postinstall
+workspace/kubuntu-postinstall
+.custom/kubuntu-postinstall
 .android
 .local/share/Trash
 .steam/debian-installation/steamapps/common
@@ -64,7 +64,6 @@ vmware
 .linuxmint
 .local/share/baloo
 .local/share/RecentDocuments
-.local/share/kactivitymanagerd
 .logseq
 .mono
 .mysql_history

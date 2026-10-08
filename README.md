@@ -1,4 +1,4 @@
-# lm-postinstall
+# kubuntu-postinstall
 
 Scripts de backup e restauração pós-instalação do **Kubuntu (KDE Plasma)**.
 
@@ -21,7 +21,6 @@ Scripts de backup e restauração pós-instalação do **Kubuntu (KDE Plasma)**.
 - `lib/common.sh` — helpers compartilhados e infraestrutura de idempotência
 - `pacotes_apt.txt` — lista de pacotes apt (validada para o Kubuntu)
 - `pacotes_flatpak.txt` — lista de pacotes flatpak
-- `assets/` — temas e ícones
 - `ignore-files` — regras de exclusão do restic
 
 ## Restaurar
@@ -72,6 +71,23 @@ O log de execução fica em `~/.postinstall/recover.log`.
 
 Executar `sudo ./backup.sh` ou usar o lembrete mensal `./remember_backup.sh`.
 
-O backup usa as tags `mths` e `kubuntu`. Para restaurar snapshots antigos,
-a etapa 01 filtra apenas pela tag `mths`, então snapshots do Mint continuam
-sendo encontrados.
+O snapshot inclui a home do usuário **e** arquivos de sistema que fazem parte
+da configuração do KDE/ambiente:
+
+- `$USER_HOME` — inclui `~/.config` e `~/.local/share`, onde vive a maior
+  parte da configuração do Plasma/KDE;
+- `/etc/xdg` — defaults globais do KDE e autostart de sistema;
+- `/etc/sddm.conf` e `/etc/sddm.conf.d` — login/sessão/tema do SDDM;
+- `/etc/default/keyboard` — layout de teclado;
+- `/etc/environment`.
+
+Arquivos que não existirem no sistema são ignorados silenciosamente.
+
+Como o backup roda dentro da sessão ativa, o script avisa caso o
+`plasmashell` esteja rodando e pede confirmação: decisões ainda em memória
+podem não ter sido gravadas em disco. Para um backup mais fiel, feche os
+aplicativos e, de preferência, faça logout antes de rodar.
+
+O backup usa as tags `mths` e `kubuntu`. A etapa 01 restaura o snapshot mais
+recente filtrando apenas pela tag `mths`, então snapshots antigos do Mint
+continuam sendo encontrados.

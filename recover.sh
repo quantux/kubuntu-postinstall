@@ -118,7 +118,6 @@ run_step 03-apt-packages           step_03_apt_packages           || FAILED+=(03
 run_step 04-nvidia                 step_04_nvidia                 || FAILED+=(04-nvidia)
 run_step 05-codecs                 step_05_codecs                 || FAILED+=(05-codecs)
 run_step 06-fonts                  step_06_fonts                  || FAILED+=(06-fonts)
-run_step 07-themes                 step_07_themes                 || FAILED+=(07-themes)
 run_step 09-flatpak                step_09_flatpak                || FAILED+=(09-flatpak)
 run_step 10-vscode                 step_10_vscode                 || FAILED+=(10-vscode)
 run_step 11-nvim                   step_11_nvim                   || FAILED+=(11-nvim)

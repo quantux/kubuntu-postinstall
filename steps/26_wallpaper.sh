@@ -8,7 +8,7 @@
 # em X11 quanto em Wayland).
 
 step_26_wallpaper() {
-    local state="$USER_HOME/.config/lm-postinstall/wallpaper"
+    local state="$USER_HOME/.config/kubuntu-postinstall/wallpaper"
 
     if [ ! -s "$state" ]; then
         show_message "⚠️  Nenhum wallpaper registrado no último backup. Pulando."
