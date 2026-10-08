@@ -62,6 +62,9 @@ vmware
 .john
 .lesshst
 .linuxmint
+.local/share/baloo
+.local/share/RecentDocuments
+.local/share/kactivitymanagerd
 .logseq
 .mono
 .mysql_history

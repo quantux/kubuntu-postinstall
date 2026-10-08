@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# Etapa 21 - Instala o Docker, adiciona o usuário aos grupos e sobe containers
+# Etapa 21 - Instala o Docker, adiciona o usuário aos grupos e sobe os
+# containers "sempre ativos" do docker-compose (stirling-pdf e ollama).
+#
+# Os demais serviços do compose (apache, nginx, php, web, mysql, composer)
+# têm restart "no" e são containers de dev sob demanda; não são iniciados aqui.
+
+# Serviços que devem ficar ativos após o recover.
+DOCKER_SERVICES="stirling-pdf ollama"
 
 step_21_docker() {
     show_message "Instalando Docker"
@@ -22,7 +29,7 @@ step_21_docker() {
         fi
     done
 
-    show_message "Subindo containers"
+    show_message "Subindo containers: $DOCKER_SERVICES"
     if [ ! -f "$DOCKER_COMPOSE_PATH" ]; then
         echo "⚠️  $DOCKER_COMPOSE_PATH não encontrado após o restore; pulando subida dos containers."
         return 0
@@ -34,10 +41,10 @@ step_21_docker() {
     # os containers com um override removendo a reserva de GPU (ollama em CPU).
     GPU_OFF="/tmp/docker-compose.no-gpu.yml"
     if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-        docker compose -f "$DOCKER_COMPOSE_PATH" up -d
+        docker compose -f "$DOCKER_COMPOSE_PATH" up -d $DOCKER_SERVICES
     else
         echo "⚠️  Driver NVIDIA não detectado; subindo containers sem reserva de GPU (ollama em CPU)."
         printf 'services:\n  ollama:\n    deploy:\n      resources:\n        reservations:\n          devices: !reset []\n' > "$GPU_OFF"
-        docker compose -f "$DOCKER_COMPOSE_PATH" -f "$GPU_OFF" up -d
+        docker compose -f "$DOCKER_COMPOSE_PATH" -f "$GPU_OFF" up -d $DOCKER_SERVICES
     fi
 }

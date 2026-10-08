@@ -32,7 +32,7 @@ gparted
 sox
 ffmpeg
 htop
-neofetch
+fastfetch
 pv
 ncdu
 tree
@@ -43,7 +43,7 @@ acpi-call-dkms
 dkms
 gnome-system-tools
 hardinfo
-p7zip-full
+7zip
 unrar
 rar
 qpdf
@@ -53,7 +53,7 @@ nmap
 traceroute
 jq
 python3-setuptools
-mint-meta-codecs
+ubuntu-restricted-addons
 software-properties-common
 libxcb-cursor0
 plymouth
@@ -71,9 +71,8 @@ mkvtoolnix-gui
 mame-tools
 sysstat
 ovmf
-ovmf-ia32
 qemu-system
-qemu-user-static
+qemu-user-binfmt
 meson
 steam
 steam-devices
@@ -84,7 +83,9 @@ tesseract-ocr-por
 hashdeep
 restic
 zpaq
-jmtpfs
+libmtp-runtime
+mtp-tools
+kio-extras
 imagemagick
 mediainfo
 util-linux
@@ -99,7 +100,6 @@ xvfb
 nvme-cli
 fio
 nasm
-chromium
 clonezilla
 k3b
 osmium-tool
@@ -108,11 +108,11 @@ libtpms0
 libxcb-cursor0
 btop
 moreutils
-cheese
-cheese-common
+kamoso
 freerdp3-x11
 stress
-glmark2
+glmark2-wayland
+glmark2-x11
 gddrescue
 testdisk
 gpart

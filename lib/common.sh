@@ -69,10 +69,38 @@ run_step() {
     fi
 }
 
+# Como run_step, mas SEMPRE executa, ignorando o marcador. Usado em etapas
+# interativas que precisam perguntar em toda execução (ex.: etapa 01/restore).
+run_step_force() {
+    local name="$1" func="$2"
+
+    log_line "==> iniciando etapa (forçada): $name"
+    show_message "▶ Executando etapa: $name"
+
+    if ( set -e; "$func" ); then
+        mark_step "$name"
+        log_line "==> etapa concluída: $name"
+        return 0
+    else
+        log_line "==> etapa FALHOU: $name"
+        echo "❌ A etapa '$name' falhou. Corrija o problema e reexecute o script." >&2
+        return 1
+    fi
+}
+
 # Remove um marcador, permitindo reexecutar uma etapa.
 unmark_step() {
     local name="$1"
     rm -f "$POSTINSTALL_STEPS/$name"
+}
+
+# Verifica se existe algum marcador de etapa concluída (recover anterior).
+has_steps() {
+    local step
+    for step in "$POSTINSTALL_STEPS"/*; do
+        [ -e "$step" ] && return 0
+    done
+    return 1
 }
 
 # Remove todos os marcadores, forçando a reexecução de tudo.
@@ -81,7 +109,7 @@ reset_steps() {
     echo "Marcadores de etapas removidos de $POSTINSTALL_STEPS"
 }
 
-# Lista as etapas concluídas e pendentes.
+# Lista as etapas concluídas.
 status_steps() {
     local step
     echo "Etapas registradas em $POSTINSTALL_STEPS:"
@@ -89,5 +117,4 @@ status_steps() {
         [ -e "$step" ] || continue
         echo "  ✔ $(basename "$step")"
     done
-    echo "Para limpar os marcadores: $0 --reset"
 }

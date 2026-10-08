@@ -1,5 +1,9 @@
 com.google.Chrome
 com.brave.Browser
+org.chromium.Chromium
+org.mozilla.firefox
+org.mozilla.Thunderbird
+org.kde.krita
 com.github.calo001.fondo
 com.github.tchx84.Flatseal
 org.openshot.OpenShot

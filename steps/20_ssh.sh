@@ -4,12 +4,22 @@
 
 step_20_ssh() {
     show_message "Restaurando configuração personalizada do SSH"
+
     if [ -f "$USER_HOME/.ssh/sshd_custom.conf" ]; then
-        cp "$USER_HOME/.ssh/sshd_custom.conf" /etc/ssh/sshd_config.d/sshd_custom.conf
-        chmod 644 /etc/ssh/sshd_config.d/sshd_custom.conf
-        chown root:root /etc/ssh/sshd_config.d/sshd_custom.conf
+        if [ -d /etc/ssh/sshd_config.d ]; then
+            cp "$USER_HOME/.ssh/sshd_custom.conf" /etc/ssh/sshd_config.d/sshd_custom.conf
+            chmod 644 /etc/ssh/sshd_config.d/sshd_custom.conf
+            chown root:root /etc/ssh/sshd_config.d/sshd_custom.conf
+        else
+            echo "⚠️  /etc/ssh/sshd_config.d não existe (openssh-server instalado?); pulando cópia."
+        fi
     else
         echo "⚠️  $USER_HOME/.ssh/sshd_custom.conf não encontrado no backup; pulando configuração personalizada."
     fi
-    systemctl restart ssh
+
+    if systemctl cat ssh.service >/dev/null 2>&1; then
+        systemctl restart ssh
+    else
+        echo "⚠️  ssh.service não encontrado (openssh-server não instalado?); pulando restart."
+    fi
 }
