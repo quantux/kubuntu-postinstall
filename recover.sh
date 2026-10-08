@@ -57,7 +57,7 @@ fi
 # específicos do Mint (/etc/linuxmint/info, /etc/upstream-release).
 UBUNTU_CODENAME=$(. /etc/os-release && echo "${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}")
 DOCKER_COMPOSE_PATH="$USER_HOME/.custom/docker-apps/docker-compose.yml"
-RESTIC_REPO="${RESTIC_REPO:-/media/restic/restic_notebook_repo}"
+RESTIC_REPO="${RESTIC_REPO:-/mnt/restic/restic_notebook_repo}"
 
 # O repositório do restic é opcional: os dados podem já ter sido copiados
 # manualmente para a home. A etapa 01 decide, em runtime, se restaura ou pula.

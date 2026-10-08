@@ -27,7 +27,7 @@ Scripts de backup e restauração pós-instalação do **Kubuntu (KDE Plasma)**.
 
 1. Instalar:
    - `sudo apt-get install -y git restic`
-2. (Opcional) Montar o repositório do restic em `/media/restic/restic_notebook_repo`.
+2. (Opcional) Montar o repositório do restic em `/mnt/restic/restic_notebook_repo`.
    Se os dados já tiverem sido copiados manualmente para a home, não é
    necessário montar.
 3. Executar `sudo ./recover.sh`.
@@ -43,7 +43,7 @@ montar o repositório:
 
 ### Ajustando o caminho do repositório
 
-O caminho padrão é `/media/restic/restic_notebook_repo` e pode ser sobrescrito
+O caminho padrão é `/mnt/restic/restic_notebook_repo` e pode ser sobrescrito
 pela variável de ambiente `RESTIC_REPO`:
 
 ```bash

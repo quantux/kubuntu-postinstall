@@ -21,7 +21,7 @@ SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 # Aceita a cópia instalada em ~/.custom/kubuntu-postinstall; senão usa a do repositório.
 EXCLUDE_FILE="$USER_HOME/.custom/kubuntu-postinstall/ignore-files"
 [ -f "$EXCLUDE_FILE" ] || EXCLUDE_FILE="$SCRIPT_DIR/ignore-files"
-RESTIC_REPO="${RESTIC_REPO:-/media/restic/restic_notebook_repo}"
+RESTIC_REPO="${RESTIC_REPO:-/mnt/restic/restic_notebook_repo}"
 
 # Testa se o repositório existe
 if [ ! -d "$RESTIC_REPO" ]; then
