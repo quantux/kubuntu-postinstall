@@ -2,20 +2,20 @@
 
 # Etapa 25 - Latência de rede no Wi-Fi (MediaTek MT7921).
 #
-# Reúne os ajustes que eliminam picos de latência/ping no Wi-Fi, medidos nesta
-# máquina (a execução em rede mesh com Decos era o caso mais grave). Cada causa
-# foi confirmada por medição (ping no gateway + iw event):
+# Reúne os ajustes que eliminam picos de latência/ping no Wi-Fi (confirmados
+# por medição: ping no gateway + iw event). A execução em rede mesh com Decos
+# era o caso mais grave.
 #
 #   1. Wi-Fi Power Save ligado por padrão no Ubuntu/Kubuntu
 #      (/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf define
 #      wifi.powersave = 3). O firmware do mt7921 passa a acumular/entregar
 #      frames em rajadas -> picos. Solução: desligar (powersave = 2).
 #
-#   2. PCIe ASPM L1 no link do mt7921e: ao acordar o link, gera picos. Além da
-#      opção do módulo (disable_aspm=1), a politica GLOBAL de ASPM volta a
-#      "default" no boot e reativa o L1 -- por isso fixamos em "performance"
-#      com um servico systemd.
+#   2. PCIe ASPM L1 no link do mt7921e: ao acordar o link, gera picos.
 #      Medido: ping max 1162ms (ASPM on) -> 22ms (off).
+#      A opção do módulo (disable_aspm=1) sozinha não basta: a politica GLOBAL
+#      de ASPM volta a "default" no boot e o L1 é reativado em eventos do link.
+#      Por isso fixamos a politica no kernel cmdline (pcie_aspm.policy=performance).
 #
 #   3. bgscan do wpa_supplicant: o NetworkManager injeta bgscan
 #      ("simple:30:-65:300") quando a conexao ja foi associada a mais de um
@@ -45,24 +45,19 @@ EOF
         echo "⚠️  Módulo mt7921e não encontrado; pulando opção de ASPM do módulo."
     fi
 
-    show_message "Fixando a política global de ASPM em performance (systemd)"
-    cat > /etc/systemd/system/wifi-no-aspm.service <<'EOF'
-[Unit]
-Description=Disable PCIe ASPM (Wi-Fi MediaTek MT7921 low-latency)
-After=sysinit.target
-Before=network.target NetworkManager.service
-DefaultDependencies=no
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c 'echo performance > /sys/module/pcie_aspm/parameters/policy'
-
-[Install]
-WantedBy=sysinit.target
-EOF
-    systemctl daemon-reload
-    systemctl enable --now wifi-no-aspm.service
+    show_message "Fixando a política global de ASPM em performance (kernel cmdline)"
+    if grep -q 'pcie_aspm.policy=performance' /etc/default/grub; then
+        echo "  já presente no /etc/default/grub"
+    else
+        cp -a /etc/default/grub /etc/default/grub.bak-before-pcie-aspm 2>/dev/null || true
+        sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT='\(.*\)'/GRUB_CMDLINE_LINUX_DEFAULT='\1 pcie_aspm.policy=performance'/" /etc/default/grub
+        if grep -q 'pcie_aspm.policy=performance' /etc/default/grub; then
+            update-grub
+        else
+            echo "⚠️  Não consegui editar GRUB_CMDLINE_LINUX_DEFAULT; ajuste manualmente:"
+            echo "     GRUB_CMDLINE_LINUX_DEFAULT=\"... pcie_aspm.policy=performance\" && update-grub"
+        fi
+    fi
 
     show_message "Desligando o bgscan do wpa_supplicant (dispatcher do NetworkManager)"
     cat > /etc/NetworkManager/dispatcher.d/50-wifi-no-bgscan <<'EOF'
