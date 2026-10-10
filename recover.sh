@@ -134,6 +134,7 @@ run_step 21-docker                 step_21_docker                 || FAILED+=(21
 run_step 22-shell                  step_22_shell                  || FAILED+=(22-shell)
 run_step 23-cleanup                step_23_cleanup                || FAILED+=(23-cleanup)
 run_step 24-udev                   step_24_udev                   || FAILED+=(24-udev)
+run_step 25-network                step_25_network                || FAILED+=(25-network)
 run_step 26-wallpaper              step_26_wallpaper              || FAILED+=(26-wallpaper)
 run_step 27-certificado            step_27_certificado            || FAILED+=(27-certificado)
 
