@@ -38,6 +38,7 @@ ncdu
 tree
 whois
 tlp
+alsa-utils
 pavucontrol
 acpi-call-dkms
 dkms

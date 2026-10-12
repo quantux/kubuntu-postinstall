@@ -137,6 +137,7 @@ run_step 24-udev                   step_24_udev                   || FAILED+=(24
 run_step 25-network                step_25_network                || FAILED+=(25-network)
 run_step 26-wallpaper              step_26_wallpaper              || FAILED+=(26-wallpaper)
 run_step 27-certificado            step_27_certificado            || FAILED+=(27-certificado)
+run_step 28-audio-fuxi             step_28_audio_fuxi             || FAILED+=(28-audio-fuxi)
 
 # ---------------------------------------------------------------------------
 # Resumo final
