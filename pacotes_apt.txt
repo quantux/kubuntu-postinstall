@@ -29,6 +29,7 @@ gedit
 fonts-firacode
 fonts-powerline
 gparted
+breeze-gtk-theme
 sox
 ffmpeg
 htop

@@ -138,6 +138,7 @@ run_step 25-network                step_25_network                || FAILED+=(25
 run_step 26-wallpaper              step_26_wallpaper              || FAILED+=(26-wallpaper)
 run_step 27-certificado            step_27_certificado            || FAILED+=(27-certificado)
 run_step 28-audio-fuxi             step_28_audio_fuxi             || FAILED+=(28-audio-fuxi)
+run_step 29-gtk-theme              step_29_gtk_theme              || FAILED+=(29-gtk-theme)
 
 # ---------------------------------------------------------------------------
 # Resumo final
