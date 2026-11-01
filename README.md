@@ -32,14 +32,18 @@ Scripts de backup e restauração pós-instalação do **Kubuntu (KDE Plasma)**.
    necessário montar.
 3. Executar `sudo ./recover.sh`.
 
-A etapa 01 **sempre pergunta** (não é pulada por marcador), para lembrar de
-montar o repositório:
+A verificação do repositório acontece **no início do `recover.sh`**, antes de
+qualquer etapa (e antes de perguntar sobre progresso anterior):
 
 - Se o repositório **estiver montado**, mostra os snapshots e pergunta se quer
-  restaurar via restic.
+  restaurar via restic. Respondendo `y`, a etapa 01 executa a restauração; se
+  ela falhar, o recover é **abortado**.
 - Se **não estiver montado**, pergunta "Quer recuperar seus dados a partir do
-  repositório restic?". Respondendo `y`, ele avisa para montar o repositório e
-  executar de novo (a etapa fica pendente); respondendo `n`, segue sem restaurar.
+  repositório restic?". Respondendo `y`, o script **aborta imediatamente** com
+  instruções para montar o repositório; respondendo `n`, segue sem restaurar.
+
+A etapa 01 não pergunta mais nada: ela apenas executa a decisão tomada no início
+do script (e revalida o mount antes de chamar o restic).
 
 ### Ajustando o caminho do repositório
 

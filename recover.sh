@@ -59,11 +59,75 @@ UBUNTU_CODENAME=$(. /etc/os-release && echo "${UBUNTU_CODENAME:-${VERSION_CODENA
 DOCKER_COMPOSE_PATH="$USER_HOME/.custom/docker-apps/docker-compose.yml"
 RESTIC_REPO="${RESTIC_REPO:-/mnt/restic/restic_notebook_repo}"
 
-# O repositório do restic é opcional: os dados podem já ter sido copiados
-# manualmente para a home. A etapa 01 decide, em runtime, se restaura ou pula.
 if [ -z "$UBUNTU_CODENAME" ]; then
     echo "⚠️  Não foi possível determinar o codename da distro em /etc/os-release."
 fi
+
+# ---------------------------------------------------------------------------
+# Verificação antecipada do repositório restic (antes de qualquer etapa)
+#
+# O repositório é opcional: os dados podem já ter sido copiados manualmente
+# para a home. A decisão é tomada aqui, antes de inicializar a idempotência e
+# de executar qualquer etapa. Se o usuário quiser restaurar e o repositório
+# não estiver montado, o script aborta imediatamente.
+# ---------------------------------------------------------------------------
+RESTIC_RESTORE="no"
+
+check_restic_restore() {
+    local ans=""
+
+    if ! restic_repo_mounted "$RESTIC_REPO"; then
+        echo "⚠️  Repositório restic não está montado em $RESTIC_REPO."
+
+        if [ -t 0 ]; then
+            read -r -p "Quer recuperar seus dados a partir do repositório restic? (y/N): " ans || ans=""
+        else
+            echo "⚠️  Sem terminal interativo; pulando a restauração via restic."
+            return 0
+        fi
+
+        case "$ans" in
+            [Yy]*)
+                echo "❌ Restauração solicitada, mas $RESTIC_REPO não está montado."
+                echo "   Monte o repositório e execute o recover novamente."
+                exit 1
+                ;;
+            *)
+                show_message "Restauração via restic pulada. Mantendo os dados já presentes em $USER_HOME."
+                ;;
+        esac
+        return 0
+    fi
+
+    if ! command -v restic >/dev/null 2>&1; then
+        echo "❌ O repositório está montado, mas o comando 'restic' não está instalado."
+        echo "   Instale com: sudo apt-get install -y restic"
+        exit 1
+    fi
+
+    show_message "Repositório restic detectado: $RESTIC_REPO"
+    echo "Snapshots disponíveis (tag mths):"
+    restic -r "$RESTIC_REPO" snapshots --tag mths 2>/dev/null | tail -n +2 || true
+    echo
+
+    if [ -t 0 ]; then
+        read -r -p "Restaurar os dados via restic agora? (y/N): " ans || ans=""
+    else
+        echo "⚠️  Sem terminal interativo; pulando a restauração via restic."
+        return 0
+    fi
+
+    case "$ans" in
+        [Yy]*)
+            RESTIC_RESTORE="yes"
+            ;;
+        *)
+            show_message "Restauração via restic pulada. Mantendo os dados já presentes em $USER_HOME."
+            ;;
+    esac
+}
+
+check_restic_restore
 
 # ---------------------------------------------------------------------------
 # Inicialização da infraestrutura de idempotência
@@ -112,7 +176,13 @@ done
 FAILED=()
 
 run_step 00-snap                 step_00_snap                 || FAILED+=(00-snap)
-run_step_force 01-restore           step_01_restore                || FAILED+=(01-restore)
+if ! run_step_force 01-restore step_01_restore; then
+    FAILED+=(01-restore)
+    if [ "$RESTIC_RESTORE" = "yes" ]; then
+        echo "❌ A restauração via restic falhou. Abortando o recover." >&2
+        exit 1
+    fi
+fi
 run_step 02-apt-base               step_02_apt_base               || FAILED+=(02-apt-base)
 run_step 03-apt-packages           step_03_apt_packages           || FAILED+=(03-apt-packages)
 run_step 04-nvidia                 step_04_nvidia                 || FAILED+=(04-nvidia)

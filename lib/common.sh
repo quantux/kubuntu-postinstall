@@ -13,6 +13,24 @@ show_message() {
     printf "%s\n\n" "$1"
 }
 
+# Verifica se o caminho do repositório restic está disponível, isto é, se o
+# diretório existe e está dentro de um ponto de montagem. Simples existência do
+# diretório não basta: sem o mount, o restic escreveria/léria no disco raiz.
+# Uso: restic_repo_mounted <caminho>
+restic_repo_mounted() {
+    local repo="$1" path
+
+    [ -d "$repo" ] || return 1
+
+    path=$(readlink -f "$repo")
+    while [ -n "$path" ] && [ "$path" != "/" ]; do
+        mountpoint -q "$path" && return 0
+        path=$(dirname "$path")
+    done
+
+    return 1
+}
+
 # Executa um comando como o usuário real (não-root) em shell de login.
 user_do() {
     sudo -u "$USER_NAME" bash -l -c "$1"
