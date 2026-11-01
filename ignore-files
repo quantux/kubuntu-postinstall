@@ -15,12 +15,12 @@ workspace/kubuntu-postinstall
 .custom/kubuntu-postinstall
 .android
 .local/share/Trash
-.steam/debian-installation/steamapps/common
-.steam/debian-installation/steamapps/shadercache
-.steam/debian-installation/steamapps/compatdata
-.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common
-.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/shadercache
-.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata
+# Steam: nada da Steam entra no backup (inclui jogos, runtimes, shadercache,
+# compatdata, userdata e caches do cliente).
+.steam
+.local/share/Steam
+.var/app/com.valvesoftware.Steam
+.var/app/com.steamgriddb.steam-rom-manager
 .vmware
 vmware
 .cache

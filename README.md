@@ -92,6 +92,21 @@ da configuração do KDE/ambiente:
 
 Arquivos que não existirem no sistema são ignorados silenciosamente.
 
+### Exclusões via `.gitignore` (somente `~/workspace`)
+
+Antes de chamar o restic, o script varre os projetos em `~/workspace` (filhos
+diretos e raízes de repositórios aninhados) e adiciona ao backup um
+`--exclude` para cada caminho ignorado pelo git (`git ls-files --others
+--ignored --exclude-standard --directory`). Na prática, o que está no
+`.gitignore` de um projeto em `~/workspace` não vai para o snapshot.
+
+- Vale **apenas** para `~/workspace`. Repositórios em outras pastas do sistema
+  são copiados por inteiro, mesmo que tenham arquivos no `.gitignore`.
+- Cada projeto é avaliado isoladamente, com um work-tree sintético, para que
+  regras de um repositório pai (por exemplo, o repositório da própria home)
+  não vazem para dentro de `~/workspace`.
+- A varredura ocorre a cada execução: não é preciso manter lista manual.
+
 Como o backup roda dentro da sessão ativa, o script avisa caso o
 `plasmashell` esteja rodando e pede confirmação: decisões ainda em memória
 podem não ter sido gravadas em disco. Para um backup mais fiel, feche os

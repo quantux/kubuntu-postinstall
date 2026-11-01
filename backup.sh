@@ -94,9 +94,75 @@ for p in "${SYSTEM_PATHS[@]}"; do
     [ -e "$p" ] && BACKUP_PATHS+=("$p")
 done
 
+# --- Exclusões automáticas dos .gitignore dos projetos em ~/workspace ---
+# Arquivos ignorados pelo git nos repositórios dentro de ~/workspace não vão
+# para o backup. Fora de ~/workspace nada é afetado: repositórios em outras
+# pastas continuam sendo copiados por inteiro, mesmo que tenham .gitignore.
+WORKSPACE_DIR="$USER_HOME/workspace"
+GIT_EXCLUDES=()
+
+# Escapa metacaracteres de glob do restic (filepath.Match), já que cada
+# caminho é passado como padrão exato em --exclude.
+restic_escape_pattern() {
+    local p="$1"
+    if [[ "$p" == *[\\\*\?\[\]\$]* ]]; then
+        p=$(printf '%s' "$p" | sed -e 's/\\/\\\\/g' -e 's/\*/\\*/g' \
+            -e 's/?/\\?/g' -e 's/\[/\\[/g' -e 's/\]/\\]/g' -e 's/\$/\\$/g')
+    fi
+    printf '%s' "$p"
+}
+
+collect_gitignore_excludes() {
+    local tmp_git root rel path
+
+    [ -d "$WORKSPACE_DIR" ] || return 0
+    if ! command -v git >/dev/null 2>&1; then
+        echo "⚠️  git não encontrado; .gitignore de $WORKSPACE_DIR não será aplicado."
+        return 0
+    fi
+
+    # Work-tree sintético com índice vazio: assim somente os .gitignore
+    # existentes dentro do projeto valem. Sem isso, um .gitignore de um
+    # repositório pai (ex.: a própria home) vazaria regras para cá.
+    tmp_git=$(mktemp -d) || return 0
+    if ! git init -q --bare "$tmp_git" >/dev/null 2>&1; then
+        rm -rf "$tmp_git"
+        echo "⚠️  Não foi possível preparar as exclusões do git (continuando)."
+        return 0
+    fi
+
+    # Um projeto por vez: filhos diretos de ~/workspace e raízes de repositórios
+    # aninhados (o git não desce em repositório embutido, então cada raiz
+    # precisa ser varrida separadamente).
+    while IFS= read -r root; do
+        [ -d "$root" ] || continue
+        while IFS= read -r -d '' rel; do
+            path="$root/${rel%/}"
+            GIT_EXCLUDES+=("--exclude=$(restic_escape_pattern "$path")")
+        done < <(
+            cd "$root" &&
+            git --git-dir="$tmp_git" --work-tree="$root" \
+                ls-files --others --ignored --exclude-standard --directory -z 2>/dev/null
+        )
+    done < <(
+        {
+            find "$WORKSPACE_DIR" -mindepth 1 -maxdepth 1 -type d -print
+            find "$WORKSPACE_DIR" -name .git -prune -printf '%h\n'
+        } 2>/dev/null | sort -u
+    )
+
+    rm -rf "$tmp_git"
+}
+
+collect_gitignore_excludes
+if [ "${#GIT_EXCLUDES[@]}" -gt 0 ]; then
+    echo "Excluindo ${#GIT_EXCLUDES[@]} caminho(s) ignorado(s) pelo git em $WORKSPACE_DIR."
+fi
+
 # Executa o backup com restic
 echo "Iniciando backup com Restic no repositório: $RESTIC_REPO"
-restic -r "$RESTIC_REPO" backup "${BACKUP_PATHS[@]}" --exclude-file="$EXCLUDE_FILE" -vv --tag mths --tag kubuntu
+restic -r "$RESTIC_REPO" backup "${BACKUP_PATHS[@]}" --exclude-file="$EXCLUDE_FILE" \
+    "${GIT_EXCLUDES[@]}" -vv --tag mths --tag kubuntu
 
 # Depois do backup, sobe os containers novamente
 echo "Subindo containers com docker compose..."
