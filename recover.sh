@@ -105,9 +105,18 @@ check_restic_restore() {
         exit 1
     fi
 
+    # Só chama o restic se ele conseguir obter a senha. Caso contrário ele
+    # morre com "unable to read password" antes mesmo de listar os snapshots.
+    if ! restic_password_available; then
+        echo "⚠️  Não há terminal utilizável nem senha configurada para o restic."
+        echo "   Rode em um terminal interativo ou defina RESTIC_PASSWORD_FILE."
+        echo "   Restauração via restic pulada; mantendo os dados já presentes em $USER_HOME."
+        return 0
+    fi
+
     show_message "Repositório restic detectado: $RESTIC_REPO"
     echo "Snapshots disponíveis (tag mths):"
-    restic -r "$RESTIC_REPO" snapshots --tag mths 2>/dev/null | tail -n +2 || true
+    restic -r "$RESTIC_REPO" snapshots --tag mths | tail -n +2 || true
     echo
 
     if [ -t 0 ]; then

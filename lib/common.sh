@@ -31,6 +31,17 @@ restic_repo_mounted() {
     return 1
 }
 
+# Verifica se o restic consegue obter a senha do repositório: ou por variável
+# de ambiente/arquivo/comando, ou porque existe um terminal utilizável.
+# Sem isso, o restic falha com "unable to read password: inappropriate ioctl".
+restic_password_available() {
+    [ -n "${RESTIC_PASSWORD:-}" ] && return 0
+    [ -n "${RESTIC_PASSWORD_FILE:-}" ] && return 0
+    [ -n "${RESTIC_PASSWORD_COMMAND:-}" ] && return 0
+    [ -t 0 ] || return 1
+    ( exec </dev/tty ) 2>/dev/null
+}
+
 # Executa um comando como o usuário real (não-root) em shell de login.
 user_do() {
     sudo -u "$USER_NAME" bash -l -c "$1"

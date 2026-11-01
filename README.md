@@ -45,6 +45,11 @@ qualquer etapa (e antes de perguntar sobre progresso anterior):
 A etapa 01 não pergunta mais nada: ela apenas executa a decisão tomada no início
 do script (e revalida o mount antes de chamar o restic).
 
+> **Senha do restic:** antes de listar os snapshots, o script verifica se o
+> restic consegue obter a senha (terminal interativo, `RESTIC_PASSWORD`,
+> `RESTIC_PASSWORD_FILE` ou `RESTIC_PASSWORD_COMMAND`). Sem isso, ele avisa e
+> pula a restauração em vez de falhar com `unable to read password`.
+
 ### Ajustando o caminho do repositório
 
 O caminho padrão é `/mnt/restic/restic_notebook_repo` e pode ser sobrescrito
