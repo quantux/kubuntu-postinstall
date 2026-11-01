@@ -15,10 +15,41 @@ workspace/kubuntu-postinstall
 .custom/kubuntu-postinstall
 .android
 .local/share/Trash
-# Steam: nada da Steam entra no backup (inclui jogos, runtimes, shadercache,
-# compatdata, userdata e caches do cliente).
-.steam
-.local/share/Steam
+# Steam: do backup fica só o estado de login/config (registry.vdf, config/ e
+# userdata/*/config), para o cliente voltar logado depois do recover. Jogos,
+# runtimes, caches e gravações locais são reinstalados/regenerados pelo Steam.
+.steam/debian-installation/appcache
+.steam/debian-installation/bin
+.steam/debian-installation/clientui
+.steam/debian-installation/config/avatarcache
+.steam/debian-installation/config/htmlcache
+.steam/debian-installation/controller_base
+.steam/debian-installation/deb-installer
+.steam/debian-installation/depotcache
+.steam/debian-installation/friends
+.steam/debian-installation/graphics
+.steam/debian-installation/legacycompat
+.steam/debian-installation/linux32
+.steam/debian-installation/linux64
+.steam/debian-installation/logs
+.steam/debian-installation/package
+.steam/debian-installation/public
+.steam/debian-installation/resource
+.steam/debian-installation/steam
+.steam/debian-installation/steamapps
+.steam/debian-installation/steamrt32
+.steam/debian-installation/steamrt64
+.steam/debian-installation/steamui
+.steam/debian-installation/tenfoot
+.steam/debian-installation/ubuntu12_32
+.steam/debian-installation/ubuntu12_64
+.steam/debian-installation/userdata/*/config/librarycache
+.steam/debian-installation/userdata/*/config/shaderhitcache
+.steam/debian-installation/userdata/*/gamerecordings
+.steam/steam.pid
+.steam/steam.pipe
+# Cliente flatpak (não instalado hoje): se passar a usar, replicar as regras
+# acima dentro de .var/app/com.valvesoftware.Steam/.local/share/Steam.
 .var/app/com.valvesoftware.Steam
 .var/app/com.steamgriddb.steam-rom-manager
 .vmware
