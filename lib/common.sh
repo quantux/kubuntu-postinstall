@@ -7,6 +7,12 @@
 POSTINSTALL_DIR="$USER_HOME/.postinstall"
 POSTINSTALL_STEPS="$POSTINSTALL_DIR/steps"
 POSTINSTALL_LOG="$POSTINSTALL_DIR/recover.log"
+# Logs detalhados: um diretório por execução + link "latest".
+#   ~/.postinstall/logs/YYYYmmdd-HHMMSS/
+#       environment.log   — contexto do sistema no início da execução
+#       <etapa>.log       — saída completa (stdout+stderr) de cada etapa
+POSTINSTALL_LOGS="$POSTINSTALL_DIR/logs"
+POSTINSTALL_RUN_LOG=""
 
 show_message() {
     printf '%0.s-' {1..45}; echo
@@ -41,10 +47,63 @@ log_line() {
     printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >> "$POSTINSTALL_LOG"
 }
 
-# Inicializa a infraestrutura de idempotência.
+# Inicializa a infraestrutura de idempotência e o diretório de logs desta
+# execução (idempotente: chamadas repetidas reaproveitam o mesmo diretório).
 init_postinstall() {
-    mkdir -p "$POSTINSTALL_STEPS"
+    mkdir -p "$POSTINSTALL_STEPS" "$POSTINSTALL_LOGS"
     touch "$POSTINSTALL_LOG"
+
+    if [ -z "$POSTINSTALL_RUN_LOG" ]; then
+        POSTINSTALL_RUN_LOG="$POSTINSTALL_LOGS/$(date '+%Y%m%d-%H%M%S')-$$"
+        mkdir -p "$POSTINSTALL_RUN_LOG"
+        # Link estável para o log da execução mais recente.
+        ln -sfn "$POSTINSTALL_RUN_LOG" "$POSTINSTALL_LOGS/latest"
+        log_line "==> execução iniciada; logs em $POSTINSTALL_RUN_LOG"
+    fi
+}
+
+# Grava o contexto do sistema no início da execução. Ajuda a reproduzir
+# problemas (versão da distro, kernel, disco, memória, etc.).
+log_environment() {
+    local out="$POSTINSTALL_RUN_LOG/environment.log"
+    local distro="?"
+
+    if [ -r /etc/os-release ]; then
+        distro=$( . /etc/os-release; printf '%s' "${PRETTY_NAME:-?}" )
+    fi
+
+    {
+        echo "===== Contexto da execução ====="
+        echo "Data        : $(date '+%Y-%m-%d %H:%M:%S %z')"
+        echo "Run         : $POSTINSTALL_RUN_LOG"
+        echo "Comando     : $0 $*"
+        echo "Usuário     : ${USER_NAME:-desconhecido} (uid ${USER_UID:-?})"
+        echo "Host        : $(hostname 2>/dev/null || echo '?')"
+        echo "Kernel      : $(uname -srm 2>/dev/null || echo '?')"
+        echo "Distro      : $distro"
+        echo "Codename    : ${UBUNTU_CODENAME:-?}"
+        echo "Diretório   : $(pwd)"
+        echo "Disco /     : $(df -h / 2>/dev/null | tail -n 1)"
+        echo "Memória     : $(free -h 2>/dev/null | sed -n '2p')"
+    } > "$out" 2>&1
+}
+
+# Executa um comando avulso (fora das etapas) registrando a saída completa.
+# Uso: run_logged_cmd <nome-do-log> <comando> [args...]
+run_logged_cmd() {
+    local name="$1"
+    shift
+    local logfile="$POSTINSTALL_RUN_LOG/$name.log"
+
+    {
+        echo "=================================================================="
+        echo "Comando: $*"
+        echo "Início : $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "=================================================================="
+    } >> "$logfile"
+
+    "$@" 2>&1 | tee -a "$logfile"
+    return "${PIPESTATUS[0]}"
 }
 
 # Marca uma etapa como concluída.
@@ -59,6 +118,49 @@ step_done() {
     [ -f "$POSTINSTALL_STEPS/$name" ]
 }
 
+# Executa a função de uma etapa capturando toda a saída (stdout+stderr) em
+# ~/.postinstall/logs/<run>/<nome>.log, com cabeçalho, horário, duração e
+# status de saída. A saída continua aparecendo no terminal.
+# Uso: run_step_logged <nome> <função>
+run_step_logged() {
+    local name="$1" func="$2"
+    local logfile="$POSTINSTALL_RUN_LOG/$name.log"
+    local start_epoch duration status
+
+    start_epoch=$(date +%s)
+    {
+        echo "=================================================================="
+        echo "Etapa  : $name"
+        echo "Função : $func"
+        echo "Início : $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "=================================================================="
+    } >> "$logfile"
+
+    log_line "==> iniciando etapa: $name (log: $logfile)"
+
+    ( set -e; "$func" ) 2>&1 | tee -a "$logfile"
+    status=${PIPESTATUS[0]}
+
+    duration=$(( $(date +%s) - start_epoch ))
+    {
+        echo "------------------------------------------------------------------"
+        echo "Fim    : $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Status : $status"
+        echo "Duração: ${duration}s"
+        echo
+    } >> "$logfile"
+
+    if [ "$status" -eq 0 ]; then
+        log_line "==> etapa concluída: $name (${duration}s)"
+    else
+        log_line "==> etapa FALHOU: $name (status $status, ${duration}s) — log: $logfile"
+        echo "❌ A etapa '$name' falhou (status $status). Últimas linhas de $logfile:" >&2
+        tail -n 20 "$logfile" >&2
+    fi
+
+    return "$status"
+}
+
 # Executa uma função apenas se a etapa ainda não foi concluída.
 # A etapa roda num subshell com `set -e` (como no script original), então o
 # primeiro erro aborta a etapa; a falha é capturada e reportada sem derrubar
@@ -70,19 +172,16 @@ run_step() {
 
     if step_done "$name"; then
         show_message "⏭️  Etapa '$name' já concluída anteriormente. Pulando."
+        log_line "==> etapa já concluída, pulando: $name"
         return 0
     fi
 
-    log_line "==> iniciando etapa: $name"
     show_message "▶ Executando etapa: $name"
 
-    if ( set -e; "$func" ); then
+    if run_step_logged "$name" "$func"; then
         mark_step "$name"
-        log_line "==> etapa concluída: $name"
         return 0
     else
-        log_line "==> etapa FALHOU: $name"
-        echo "❌ A etapa '$name' falhou. Corrija o problema e reexecute o script." >&2
         return 1
     fi
 }
@@ -92,16 +191,12 @@ run_step() {
 run_step_force() {
     local name="$1" func="$2"
 
-    log_line "==> iniciando etapa (forçada): $name"
     show_message "▶ Executando etapa: $name"
 
-    if ( set -e; "$func" ); then
+    if run_step_logged "$name" "$func"; then
         mark_step "$name"
-        log_line "==> etapa concluída: $name"
         return 0
     else
-        log_line "==> etapa FALHOU: $name"
-        echo "❌ A etapa '$name' falhou. Corrija o problema e reexecute o script." >&2
         return 1
     fi
 }
@@ -135,4 +230,9 @@ status_steps() {
         [ -e "$step" ] || continue
         echo "  ✔ $(basename "$step")"
     done
+
+    if [ -L "$POSTINSTALL_LOGS/latest" ] || [ -d "$POSTINSTALL_LOGS/latest" ]; then
+        echo
+        echo "Log da última execução: $POSTINSTALL_LOGS/latest"
+    fi
 }

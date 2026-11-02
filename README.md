@@ -86,6 +86,26 @@ progresso) ou **continuar de onde parou**.
 
 O log de execução fica em `~/.postinstall/recover.log`.
 
+### Logs detalhados (troubleshooting)
+
+Além do resumo em `recover.log`, cada execução cria um diretório em
+`~/.postinstall/logs/AAAAMMDD-HHMMSS-PID/` (com o atalho
+`~/.postinstall/logs/latest` apontando para o mais recente) contendo:
+
+| Arquivo               | Conteúdo                                                        |
+| --------------------- | --------------------------------------------------------------- |
+| `environment.log`     | contexto do sistema: data, host, kernel, distro, disco, memória |
+| `<etapa>.log`         | saída completa (stdout+stderr) da etapa, com cabeçalho, início, fim, status de saída e duração |
+| `00-restic-install.log` / `00-restic-snapshots.log` | saída das operações do restic feitas antes das etapas |
+
+O log resumido registra início/fim de cada etapa, duração, status e o caminho
+do log detalhado correspondente. Quando uma etapa falha, as últimas 20 linhas
+do log dela são mostradas no terminal e o caminho completo é impresso no
+resumo final — basta abrir o `<etapa>.log` para ver tudo o que aconteceu.
+
+Os logs são mantidos entre execuções (não são apagados pelo `reset_steps`),
+então dá para comparar uma execução que falhou com a tentativa seguinte.
+
 ## Backup
 
 Executar `sudo ./backup.sh` ou usar o lembrete mensal `./remember_backup.sh`.

@@ -78,6 +78,7 @@ check_restic_restore() {
 
     if ! restic_repo_available "$RESTIC_REPO"; then
         echo "⚠️  Repositório restic não encontrado em $RESTIC_REPO."
+        log_line "restic: repositório não encontrado em $RESTIC_REPO"
 
         if [ -t 0 ]; then
             read -r -p "Quer recuperar seus dados a partir do repositório restic? (y/N): " ans || ans=""
@@ -104,8 +105,9 @@ check_restic_restore() {
     # antes de qualquer outro pacote.
     if ! command -v restic >/dev/null 2>&1; then
         show_message "Instalando o restic (apt update + pacote restic)..."
-        apt-get update
-        apt-get install -y restic
+        log_line "restic: instalando via apt (apt update + apt install restic)"
+        run_logged_cmd 00-restic-install apt-get update
+        run_logged_cmd 00-restic-install apt-get install -y restic
     fi
 
     if ! command -v restic >/dev/null 2>&1; then
@@ -117,6 +119,7 @@ check_restic_restore() {
     # Só chama o restic se ele conseguir obter a senha. Caso contrário ele
     # morre com "unable to read password" antes mesmo de listar os snapshots.
     if ! restic_password_available; then
+        log_line "restic: sem terminal/senha disponível; restauração pulada"
         echo "⚠️  Não há terminal utilizável nem senha configurada para o restic."
         echo "   Rode em um terminal interativo ou defina RESTIC_PASSWORD_FILE."
         echo "   Restauração via restic pulada; mantendo os dados já presentes em $USER_HOME."
@@ -132,8 +135,11 @@ check_restic_restore() {
     fi
 
     show_message "Repositório restic detectado: $RESTIC_REPO"
+    log_line "restic: repositório detectado em $RESTIC_REPO"
     echo "Snapshots disponíveis (tag mths):"
-    restic -r "$RESTIC_REPO" snapshots --tag mths | tail -n +2 || true
+    restic -r "$RESTIC_REPO" snapshots --tag mths 2>&1 \
+        | tee "$POSTINSTALL_RUN_LOG/00-restic-snapshots.log" \
+        | tail -n +2 || true
     echo
 
     if [ -t 0 ]; then
@@ -146,19 +152,22 @@ check_restic_restore() {
     case "$ans" in
         [Yy]*)
             RESTIC_RESTORE="yes"
+            log_line "restic: restauração solicitada"
             ;;
         *)
             show_message "Restauração via restic pulada. Mantendo os dados já presentes em $USER_HOME."
+            log_line "restic: restauração recusada; mantendo dados atuais"
             ;;
     esac
 }
 
-check_restic_restore
-
 # ---------------------------------------------------------------------------
-# Inicialização da infraestrutura de idempotência
+# Inicialização da infraestrutura (marcadores + logs detalhados)
 # ---------------------------------------------------------------------------
 init_postinstall
+log_environment "$@"
+
+check_restic_restore
 
 # ---------------------------------------------------------------------------
 # Recover anterior? Pergunta se quer recomeçar do zero ou continuar
@@ -243,7 +252,9 @@ echo
 if [ ${#FAILED[@]} -gt 0 ]; then
     show_message "⚠️  Restauração terminou com ${#FAILED[@]} etapa(s) falhada(s): ${FAILED[*]}"
     echo "Corrija o problema e reexecute: sudo $0"
-    echo "Log completo em: $POSTINSTALL_LOG"
+    echo "Log resumido : $POSTINSTALL_LOG"
+    echo "Log detalhado: $POSTINSTALL_RUN_LOG"
+    echo "             (atalho: $POSTINSTALL_LOGS/latest)"
     exit 1
 fi
 
@@ -253,7 +264,9 @@ for m in "$POSTINSTALL_STEPS"/*; do
     [ -e "$m" ] && echo "  ✔ $(basename "$m")"
 done
 echo
-echo "Log completo em: $POSTINSTALL_LOG"
+echo "Log resumido : $POSTINSTALL_LOG"
+echo "Log detalhado: $POSTINSTALL_RUN_LOG"
+echo "             (atalho: $POSTINSTALL_LOGS/latest)"
 
 # Reiniciar
 while true; do
