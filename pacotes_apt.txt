@@ -57,6 +57,7 @@ jq
 python3-setuptools
 ubuntu-restricted-addons
 software-properties-common
+flatpak
 libxcb-cursor0
 plymouth
 wine
