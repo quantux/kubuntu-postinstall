@@ -68,16 +68,16 @@ fi
 #
 # O repositório é opcional: os dados podem já ter sido copiados manualmente
 # para a home. A decisão é tomada aqui, antes de inicializar a idempotência e
-# de executar qualquer etapa. Se o usuário quiser restaurar e o repositório
-# não estiver montado, o script aborta imediatamente.
+# de executar qualquer etapa. Se o usuário quiser restaurar e o diretório do
+# repositório não existir, o script aborta imediatamente.
 # ---------------------------------------------------------------------------
 RESTIC_RESTORE="no"
 
 check_restic_restore() {
     local ans=""
 
-    if ! restic_repo_mounted "$RESTIC_REPO"; then
-        echo "⚠️  Repositório restic não está montado em $RESTIC_REPO."
+    if ! restic_repo_available "$RESTIC_REPO"; then
+        echo "⚠️  Repositório restic não encontrado em $RESTIC_REPO."
 
         if [ -t 0 ]; then
             read -r -p "Quer recuperar seus dados a partir do repositório restic? (y/N): " ans || ans=""
@@ -88,7 +88,7 @@ check_restic_restore() {
 
         case "$ans" in
             [Yy]*)
-                echo "❌ Restauração solicitada, mas $RESTIC_REPO não está montado."
+                echo "❌ Restauração solicitada, mas $RESTIC_REPO não existe."
                 echo "   Monte o repositório e execute o recover novamente."
                 exit 1
                 ;;
@@ -100,7 +100,7 @@ check_restic_restore() {
     fi
 
     if ! command -v restic >/dev/null 2>&1; then
-        echo "❌ O repositório está montado, mas o comando 'restic' não está instalado."
+        echo "❌ O diretório do repositório existe, mas o comando 'restic' não está instalado."
         echo "   Instale com: sudo apt-get install -y restic"
         exit 1
     fi

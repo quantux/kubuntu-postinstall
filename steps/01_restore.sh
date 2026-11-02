@@ -3,10 +3,10 @@
 # Etapa 01 - Restaura o backup do Restic (opcional) e ajusta o relógio
 # (Windows dualboot).
 #
-# A decisão (restaurar ou não, e se o repositório está montado) é tomada no
-# início do recover.sh, antes de qualquer etapa. Aqui apenas executamos a
-# restauração quando RESTIC_RESTORE=yes. Mesmo assim, revalidamos o mount para
-# nunca escrever no disco raiz por engano.
+# A decisão (restaurar ou não, e se o diretório do repositório existe) é tomada
+# no início do recover.sh, antes de qualquer etapa. Aqui apenas executamos a
+# restauração quando RESTIC_RESTORE=yes. Mesmo assim, revalidamos a existência
+# do diretório antes de chamar o restic.
 
 step_01_restore() {
     timedatectl set-local-rtc 1
@@ -22,8 +22,8 @@ step_01_restore() {
         return 1
     fi
 
-    if ! restic_repo_mounted "$RESTIC_REPO"; then
-        echo "❌ Repositório restic não está montado em $RESTIC_REPO."
+    if ! restic_repo_available "$RESTIC_REPO"; then
+        echo "❌ Repositório restic não encontrado em $RESTIC_REPO."
         echo "   Monte o repositório e execute o recover novamente."
         return 1
     fi

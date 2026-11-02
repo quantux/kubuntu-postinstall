@@ -35,15 +35,19 @@ Scripts de backup e restauração pós-instalação do **Kubuntu (KDE Plasma)**.
 A verificação do repositório acontece **no início do `recover.sh`**, antes de
 qualquer etapa (e antes de perguntar sobre progresso anterior):
 
-- Se o repositório **estiver montado**, mostra os snapshots e pergunta se quer
-  restaurar via restic. Respondendo `y`, a etapa 01 executa a restauração; se
-  ela falhar, o recover é **abortado**.
-- Se **não estiver montado**, pergunta "Quer recuperar seus dados a partir do
-  repositório restic?". Respondendo `y`, o script **aborta imediatamente** com
-  instruções para montar o repositório; respondendo `n`, segue sem restaurar.
+- Se o diretório do repositório **existir**, mostra os snapshots e pergunta se
+  quer restaurar via restic. Respondendo `y`, a etapa 01 executa a restauração;
+  se ela falhar, o recover é **abortado**.
+- Se o diretório **não existir**, pergunta "Quer recuperar seus dados a partir
+  do repositório restic?". Respondendo `y`, o script **aborta imediatamente**
+  com instruções para montar/disponibilizar o repositório; respondendo `n`,
+  segue sem restaurar.
+
+Não é exigido que o repositório seja um ponto de montagem — basta a pasta
+existir (útil para testes com uma cópia local).
 
 A etapa 01 não pergunta mais nada: ela apenas executa a decisão tomada no início
-do script (e revalida o mount antes de chamar o restic).
+do script (e revalida a existência do diretório antes de chamar o restic).
 
 > **Senha do restic:** antes de listar os snapshots, o script verifica se o
 > restic consegue obter a senha (terminal interativo, `RESTIC_PASSWORD`,
