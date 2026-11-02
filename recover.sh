@@ -1,6 +1,9 @@
 #!/bin/bash
 set -uo pipefail
 
+# Evita prompts de debconf/needrestart durante instalações e upgrades.
+export DEBIAN_FRONTEND=noninteractive
+
 # Orquestrador de restauração pós-instalação do Kubuntu (KDE Plasma).
 #
 # Cada etapa vive em steps/XX_nome.sh e só é executada uma vez:
@@ -244,11 +247,21 @@ run_step 26-wallpaper              step_26_wallpaper              || FAILED+=(26
 run_step 27-certificado            step_27_certificado            || FAILED+=(27-certificado)
 run_step 28-audio-fuxi             step_28_audio_fuxi             || FAILED+=(28-audio-fuxi)
 run_step 29-gtk-theme              step_29_gtk_theme              || FAILED+=(29-gtk-theme)
+# Etapa sempre executada (é idempotente): a sessão Plasma pode não estar
+# disponível numa execução anterior; rodar de novo garante o ajuste.
+run_step_force 30-plasma-panels    step_30_plasma_panels          || FAILED+=(30-plasma-panels)
 
 # ---------------------------------------------------------------------------
 # Resumo final
 # ---------------------------------------------------------------------------
 echo
+if [ ${#SKIPPED_STEPS[@]} -gt 0 ]; then
+    show_message "⏭️  Etapas puladas por já terem marcador: ${SKIPPED_STEPS[*]}"
+    echo "Elas NÃO foram verificadas nesta execução."
+    echo "Para reexecutá-las, remova os marcadores correspondentes em:"
+    echo "  $POSTINSTALL_STEPS"
+    echo
+fi
 if [ ${#FAILED[@]} -gt 0 ]; then
     show_message "⚠️  Restauração terminou com ${#FAILED[@]} etapa(s) falhada(s): ${FAILED[*]}"
     echo "Corrija o problema e reexecute: sudo $0"

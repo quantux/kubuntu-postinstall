@@ -35,4 +35,11 @@ step_03_apt_packages() {
     fi
 
     apt-get install -y "${to_install[@]}"
+
+    # wine/steam puxam libspa-0.2-modules:i386. Como pipewire-bin é
+    # Multi-Arch: foreign, o apt pode manter o binário i386 e não instalar o
+    # daemon nativo — o PipeWire então morre com SIGSYS no login (sem áudio e
+    # com o plasmashell reclamando de PipeWire). Garante o daemon amd64 e o
+    # WirePlumber, mantendo as bibliotecas i386 para os apps de 32 bits.
+    apt-get install -y pipewire-bin:amd64 pipewire:amd64 wireplumber
 }

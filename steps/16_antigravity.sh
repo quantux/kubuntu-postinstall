@@ -6,7 +6,10 @@ step_16_antigravity() {
     show_message "Instalando Google Antigravity IDE"
 
     IDE_HTML=$(curl -s -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" "https://antigravity.google/download" 2>/dev/null | tr -d '\0' || true)
-    IDE_URL=$(echo "$IDE_HTML" | grep -oE 'https://edgedl\.me\.gvt1\.com/edgedl/release2/[^"]*Antigravity%20IDE\.tar\.gz' | head -1 || true)
+    # A página contém um template JS (com ${...}) além da URL real. Filtra
+    # apenas a URL concreta para linux-x64.
+    IDE_URL=$(echo "$IDE_HTML" | grep -oE 'https://edgedl\.me\.gvt1\.com/edgedl/release2/[^"` ]*Antigravity%20IDE\.tar\.gz' \
+        | grep -v '\${' | grep 'linux-x64' | head -1 || true)
     [ -z "$IDE_URL" ] && IDE_URL="https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/2.1.1-6123990880747520/linux-x64/Antigravity%20IDE.tar.gz"
 
     wget "$IDE_URL" -O /tmp/antigravity-ide.tar.gz
@@ -22,6 +25,10 @@ step_16_antigravity() {
         return 1
     fi
     rm -rf /tmp/antigravity-ide*
+
+    # O conteúdo extraído pode vir com permissões restritas (ex.: 750 root);
+    # garante leitura/execução para o usuário.
+    chmod -R a+rX "/opt/Antigravity IDE"
 
     show_message "Instalando Google Antigravity CLI"
     CLI_URL=$(echo "$IDE_HTML" | grep -oE 'https://antigravity\.google/cli/install\.sh' | head -1 || true)

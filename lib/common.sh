@@ -13,6 +13,9 @@ POSTINSTALL_LOG="$POSTINSTALL_DIR/recover.log"
 #       <etapa>.log       — saída completa (stdout+stderr) de cada etapa
 POSTINSTALL_LOGS="$POSTINSTALL_DIR/logs"
 POSTINSTALL_RUN_LOG=""
+# Etapas puladas por já terem marcador (para o resumo final deixar claro que
+# elas não foram verificadas nesta execução).
+SKIPPED_STEPS=()
 
 show_message() {
     printf '%0.s-' {1..45}; echo
@@ -173,6 +176,7 @@ run_step() {
     if step_done "$name"; then
         show_message "⏭️  Etapa '$name' já concluída anteriormente. Pulando."
         log_line "==> etapa já concluída, pulando: $name"
+        SKIPPED_STEPS+=("$name")
         return 0
     fi
 

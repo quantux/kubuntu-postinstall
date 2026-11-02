@@ -30,5 +30,16 @@ step_01_restore() {
     fi
 
     show_message "Restaurando backup Restic diretamente para $USER_HOME..."
-    restic -r "$RESTIC_REPO" restore latest --target / --tag mths
+    # ~/.postinstall guarda os marcadores de idempotência e os logs do recover.
+    # Backups antigos ainda podem conter esse diretório; se ele for restaurado,
+    # o recover considera etapas antigas como concluídas e pula o restante.
+    restic -r "$RESTIC_REPO" restore latest --target / --tag mths \
+        --exclude "$USER_HOME/.postinstall" \
+        --exclude "$USER_HOME/.postinstall/*"
+
+    # Salvaguarda para backups gerados antes da exclusão acima: limpa os
+    # marcadores restaurados para que todas as etapas rodem neste recover.
+    rm -rf "$POSTINSTALL_STEPS"
+    mkdir -p "$POSTINSTALL_STEPS"
+    echo "ℹ️  Marcadores de etapas restaurados foram removidos; todas as etapas serão executadas."
 }

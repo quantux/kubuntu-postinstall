@@ -1,3 +1,7 @@
+# Estado do próprio recover (marcadores de idempotência e logs). Nunca deve
+# voltar no restore: senão o recover acha que etapas antigas já foram
+# concluídas e pula tudo (flatpaks, VSCode, Android SDK, etc.).
+.postinstall
 Documentos
 Downloads
 Modelos
