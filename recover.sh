@@ -99,8 +99,17 @@ check_restic_restore() {
         return 0
     fi
 
+    # Garante o restic instalado antes de qualquer outra coisa: só apt update e
+    # o pacote restic são instalados nesta fase, para poder restaurar o backup
+    # antes de qualquer outro pacote.
     if ! command -v restic >/dev/null 2>&1; then
-        echo "❌ O diretório do repositório existe, mas o comando 'restic' não está instalado."
+        show_message "Instalando o restic (apt update + pacote restic)..."
+        apt-get update
+        apt-get install -y restic
+    fi
+
+    if ! command -v restic >/dev/null 2>&1; then
+        echo "❌ Não foi possível instalar o comando 'restic'."
         echo "   Instale com: sudo apt-get install -y restic"
         exit 1
     fi
@@ -112,6 +121,14 @@ check_restic_restore() {
         echo "   Rode em um terminal interativo ou defina RESTIC_PASSWORD_FILE."
         echo "   Restauração via restic pulada; mantendo os dados já presentes em $USER_HOME."
         return 0
+    fi
+
+    # Pede a senha UMA vez e exporta para o snapshots e para o restore da
+    # etapa 01. Se já veio por RESTIC_PASSWORD/FILE/COMMAND, não pergunta.
+    if [ -z "${RESTIC_PASSWORD:-}" ] && [ -z "${RESTIC_PASSWORD_FILE:-}" ] && [ -z "${RESTIC_PASSWORD_COMMAND:-}" ]; then
+        read -rsp "Senha do repositório restic: " RESTIC_PASSWORD || RESTIC_PASSWORD=""
+        echo
+        export RESTIC_PASSWORD
     fi
 
     show_message "Repositório restic detectado: $RESTIC_REPO"
@@ -184,7 +201,6 @@ done
 # ---------------------------------------------------------------------------
 FAILED=()
 
-run_step 00-snap                 step_00_snap                 || FAILED+=(00-snap)
 if ! run_step_force 01-restore step_01_restore; then
     FAILED+=(01-restore)
     if [ "$RESTIC_RESTORE" = "yes" ]; then
@@ -192,6 +208,7 @@ if ! run_step_force 01-restore step_01_restore; then
         exit 1
     fi
 fi
+run_step 00-snap                 step_00_snap                 || FAILED+=(00-snap)
 run_step 02-apt-base               step_02_apt_base               || FAILED+=(02-apt-base)
 run_step 03-apt-packages           step_03_apt_packages           || FAILED+=(03-apt-packages)
 run_step 04-nvidia                 step_04_nvidia                 || FAILED+=(04-nvidia)

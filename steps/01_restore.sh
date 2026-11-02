@@ -4,9 +4,10 @@
 # (Windows dualboot).
 #
 # A decisão (restaurar ou não, e se o diretório do repositório existe) é tomada
-# no início do recover.sh, antes de qualquer etapa. Aqui apenas executamos a
-# restauração quando RESTIC_RESTORE=yes. Mesmo assim, revalidamos a existência
-# do diretório antes de chamar o restic.
+# no início do recover.sh, antes de qualquer etapa. A senha do restic também é
+# pedida uma única vez lá e exportada em RESTIC_PASSWORD. Aqui apenas executamos
+# a restauração quando RESTIC_RESTORE=yes, antes de qualquer outro pacote.
+# Mesmo assim, revalidamos a existência do diretório antes de chamar o restic.
 
 step_01_restore() {
     timedatectl set-local-rtc 1

@@ -26,18 +26,23 @@ Scripts de backup e restauração pós-instalação do **Kubuntu (KDE Plasma)**.
 ## Restaurar
 
 1. Instalar:
-   - `sudo apt-get install -y git restic`
-2. (Opcional) Montar o repositório do restic em `/mnt/restic/restic_notebook_repo`.
-   Se os dados já tiverem sido copiados manualmente para a home, não é
-   necessário montar.
+   - `sudo apt-get install -y git`
+   - O `restic` é instalado automaticamente pelo próprio script quando o
+     repositório existe (apenas `apt update` + pacote `restic`, antes de
+     qualquer outra coisa).
+2. (Opcional) Montar/disponibilizar o repositório do restic em
+   `/mnt/restic/restic_notebook_repo`. Se os dados já tiverem sido copiados
+   manualmente para a home, não é necessário.
 3. Executar `sudo ./recover.sh`.
 
 A verificação do repositório acontece **no início do `recover.sh`**, antes de
 qualquer etapa (e antes de perguntar sobre progresso anterior):
 
-- Se o diretório do repositório **existir**, mostra os snapshots e pergunta se
-  quer restaurar via restic. Respondendo `y`, a etapa 01 executa a restauração;
-  se ela falhar, o recover é **abortado**.
+- Se o diretório do repositório **existir**, o script roda **somente**
+  `apt-get update` e instala **somente** o pacote `restic`, pede a senha do
+  repositório **uma única vez**, mostra os snapshots e pergunta se quer
+  restaurar. Respondendo `y`, a restauração é feita imediatamente, **antes de
+  instalar qualquer outro pacote**; se falhar, o recover é **abortado**.
 - Se o diretório **não existir**, pergunta "Quer recuperar seus dados a partir
   do repositório restic?". Respondendo `y`, o script **aborta imediatamente**
   com instruções para montar/disponibilizar o repositório; respondendo `n`,
@@ -49,10 +54,11 @@ existir (útil para testes com uma cópia local).
 A etapa 01 não pergunta mais nada: ela apenas executa a decisão tomada no início
 do script (e revalida a existência do diretório antes de chamar o restic).
 
-> **Senha do restic:** antes de listar os snapshots, o script verifica se o
-> restic consegue obter a senha (terminal interativo, `RESTIC_PASSWORD`,
-> `RESTIC_PASSWORD_FILE` ou `RESTIC_PASSWORD_COMMAND`). Sem isso, ele avisa e
-> pula a restauração em vez de falhar com `unable to read password`.
+> **Senha do restic:** ela é pedida uma única vez no início e exportada em
+> `RESTIC_PASSWORD` para o `snapshots` e para o `restore`. Se preferir, defina
+> `RESTIC_PASSWORD`, `RESTIC_PASSWORD_FILE` ou `RESTIC_PASSWORD_COMMAND` antes
+> de rodar o script. Sem terminal e sem senha configurada, ele avisa e pula a
+> restauração em vez de falhar com `unable to read password`.
 
 ### Ajustando o caminho do repositório
 
