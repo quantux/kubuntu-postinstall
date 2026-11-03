@@ -33,11 +33,13 @@
 #      derruba o ping por ~4,5s mesmo com o bgscan desligado. Solucao: desligar
 #      o source [wifi] do geoclue (/etc/geoclue/geoclue.conf).
 #
-#   6. pcie_aspm.policy=performance no cmdline: a partir do kernel 7.0.0-42 o
-#      kernel deixou de aplicar o parametro (o sysfs passa a mostrar [default]
-#      e o L1 volta a ser habilitado no link do mt7921). Escrever no sysfs em
-#      runtime continua funcionando, entao um servico systemd reaplica a
-#      politica no boot e um hook systemd-sleep reaplica apos o resume.
+#   6. ASPM: o parametro pcie_aspm.policy=performance do cmdline e aplicado no
+#      boot, mas o TLP (que roda via udev em eventos de power_supply, mesmo com
+#      o tlp.service desabilitado) reescreve a politica como "default" -- e
+#      "default" e o valor de /usr/share/tlp/defaults.conf -- religando o L1 do
+#      mt7921. Solucao: fixar o proprio TLP em performance (/etc/tlp.d) e manter
+#      um servico + timer que reaplicam a politica no boot/resume (o timer cobre
+#      qualquer reset posterior, ex.: troca AC/bateria).
 
 step_25_network() {
     show_message "Desabilitando Wi-Fi Power Save (NetworkManager)"
@@ -109,10 +111,10 @@ EOF
 #!/bin/sh
 # Forca a politica global de ASPM em "performance" (desliga L0s/L1).
 #
-# O parametro de kernel pcie_aspm.policy=performance deixou de ser aplicado a
-# partir do kernel 7.0.0-42 (o sysfs passa a mostrar [default] e o L1 do
-# mt7921 fica habilitado, gerando picos de centenas de ms no Wi-Fi).
-# Escrever no sysfs em runtime funciona, entao reaplicamos no boot e no resume.
+# O cmdline aplica pcie_aspm.policy=performance no boot, mas o TLP (via udev)
+# reescreve a politica como "default" e religa o L1 do mt7921, gerando picos de
+# centenas de ms no Wi-Fi. Reaplicamos no boot e no resume; o timer cobre
+# qualquer reset posterior.
 P=/sys/module/pcie_aspm/parameters/policy
 [ -e "$P" ] || exit 0
 grep -q '\[performance\]' "$P" && exit 0
@@ -147,9 +149,33 @@ esac
 EOF
     chmod 755 /etc/systemd/system-sleep/wifi-aspm-performance
 
+    cat > /etc/systemd/system/wifi-aspm-performance-check.service <<'EOF'
+[Unit]
+Description=Re-check PCIe ASPM policy to performance (mt7921 Wi-Fi latency fix)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wifi-aspm-performance.sh
+EOF
+
+    cat > /etc/systemd/system/wifi-aspm-performance.timer <<'EOF'
+[Unit]
+Description=Periodically re-apply PCIe ASPM performance policy
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=1min
+AccuracySec=1s
+Unit=wifi-aspm-performance-check.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
     systemctl daemon-reload
     systemctl enable --now wifi-aspm-performance.service >/dev/null 2>&1 || true
-    echo "  ✔ serviço wifi-aspm-performance habilitado"
+    systemctl enable --now wifi-aspm-performance.timer >/dev/null 2>&1 || true
+    echo "  ✔ serviço e timer wifi-aspm-performance habilitados"
 
     show_message "Desligando TLP e thermald (reativam ASPM/powersave e throttlam a CPU)"
     for svc in tlp thermald; do
@@ -158,6 +184,26 @@ EOF
             echo "  ✔ ${svc} desabilitado"
         fi
     done
+
+    # Mesmo com o tlp.service desabilitado, o TLP roda no boot via udev
+    # ("tlp auto" em eventos de power_supply) e aplica o default de
+    # /usr/share/tlp/defaults.conf: PCIE_ASPM_ON_AC=default, que religa o L1.
+    # Fixamos o proprio TLP em performance/off para ele nao desfazer o ajuste.
+    if [ -d /etc/tlp.d ]; then
+        cat > /etc/tlp.d/99-wifi-latency.conf <<'EOF'
+# Latencia de Wi-Fi (MT7921): o TLP roda no boot via udev ("tlp auto" em
+# eventos de power_supply) mesmo com o tlp.service desabilitado e, pelo
+# default de /usr/share/tlp/defaults.conf, reescreve a politica de ASPM como
+# "default" (religa o L1). Fixamos em performance e desligamos o power save.
+PCIE_ASPM_ON_AC=performance
+PCIE_ASPM_ON_BAT=performance
+WIFI_PWR_ON_AC=off
+WIFI_PWR_ON_BAT=off
+# Nao deixar o runtime PM suspender o Wi-Fi (latencia).
+RUNTIME_PM_DISABLE="3f:00.0"
+EOF
+        echo "  ✔ TLP: ASPM=performance e Wi-Fi powersave=off (/etc/tlp.d/99-wifi-latency.conf)"
+    fi
 
     echo "ℹ️  As mudanças passam a valer após reiniciar (o recover reinicia no final)."
 }
