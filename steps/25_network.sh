@@ -27,6 +27,17 @@
 #   4. TLP/thermald: se instalados, o TLP reativa o ASPM e o power save do
 #      Wi-Fi, e o thermald throttla a CPU agressivamente. Ambos desligados
 #      (o Linux Mint, por exemplo, nao usa nenhum dos dois por padrao).
+#
+#   5. geoclue: o GeoClue2 (usado por apps com geolocalizacao) pede um scan
+#      passivo ao wpa_supplicant a cada ~5 min para localizar por Wi-Fi. Isso
+#      derruba o ping por ~4,5s mesmo com o bgscan desligado. Solucao: desligar
+#      o source [wifi] do geoclue (/etc/geoclue/geoclue.conf).
+#
+#   6. pcie_aspm.policy=performance no cmdline: a partir do kernel 7.0.0-42 o
+#      kernel deixou de aplicar o parametro (o sysfs passa a mostrar [default]
+#      e o L1 volta a ser habilitado no link do mt7921). Escrever no sysfs em
+#      runtime continua funcionando, entao um servico systemd reaplica a
+#      politica no boot e um hook systemd-sleep reaplica apos o resume.
 
 step_25_network() {
     show_message "Desabilitando Wi-Fi Power Save (NetworkManager)"
@@ -81,6 +92,64 @@ exit 0
 EOF
     chmod 755 /etc/NetworkManager/dispatcher.d/50-wifi-no-bgscan
     chown root:root /etc/NetworkManager/dispatcher.d/50-wifi-no-bgscan
+
+    show_message "Desabilitando o source Wi-Fi do geoclue (scans passivos a cada ~5min)"
+    if [ -f /etc/geoclue/geoclue.conf ]; then
+        # O geoclue pede scans passivos ao wpa_supplicant para localizar por
+        # Wi-Fi. Sem o source [wifi] ele nao mexe mais no radio.
+        sed -i '/^\[wifi\]/,/^\[/ s/^enable=true/enable=false/' /etc/geoclue/geoclue.conf
+        systemctl try-restart geoclue.service >/dev/null 2>&1 || true
+        echo "  ✔ source [wifi] do geoclue desligado"
+    else
+        echo "  ⚠️  /etc/geoclue/geoclue.conf não encontrado; pulando."
+    fi
+
+    show_message "Reaplicando a política de ASPM em performance via systemd (boot + resume)"
+    cat > /usr/local/sbin/wifi-aspm-performance.sh <<'EOF'
+#!/bin/sh
+# Forca a politica global de ASPM em "performance" (desliga L0s/L1).
+#
+# O parametro de kernel pcie_aspm.policy=performance deixou de ser aplicado a
+# partir do kernel 7.0.0-42 (o sysfs passa a mostrar [default] e o L1 do
+# mt7921 fica habilitado, gerando picos de centenas de ms no Wi-Fi).
+# Escrever no sysfs em runtime funciona, entao reaplicamos no boot e no resume.
+P=/sys/module/pcie_aspm/parameters/policy
+[ -e "$P" ] || exit 0
+grep -q '\[performance\]' "$P" && exit 0
+printf '%s' performance > "$P" 2>/dev/null || exit 1
+grep -q '\[performance\]' "$P"
+EOF
+    chmod 755 /usr/local/sbin/wifi-aspm-performance.sh
+
+    cat > /etc/systemd/system/wifi-aspm-performance.service <<'EOF'
+[Unit]
+Description=Force PCIe ASPM policy to performance (mt7921 Wi-Fi latency fix)
+ConditionPathExists=/sys/module/pcie_aspm/parameters/policy
+After=systemd-modules-load.service
+Before=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wifi-aspm-performance.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    install -d -m 755 /etc/systemd/system-sleep
+    cat > /etc/systemd/system-sleep/wifi-aspm-performance <<'EOF'
+#!/bin/sh
+# Reaplica a politica de ASPM em performance apos voltar da suspensao/hibernacao.
+case "$1" in
+    post) /usr/local/sbin/wifi-aspm-performance.sh ;;
+esac
+EOF
+    chmod 755 /etc/systemd/system-sleep/wifi-aspm-performance
+
+    systemctl daemon-reload
+    systemctl enable --now wifi-aspm-performance.service >/dev/null 2>&1 || true
+    echo "  ✔ serviço wifi-aspm-performance habilitado"
 
     show_message "Desligando TLP e thermald (reativam ASPM/powersave e throttlam a CPU)"
     for svc in tlp thermald; do
