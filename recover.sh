@@ -250,6 +250,9 @@ run_step 29-gtk-theme              step_29_gtk_theme              || FAILED+=(29
 # Etapa sempre executada (é idempotente): a sessão Plasma pode não estar
 # disponível numa execução anterior; rodar de novo garante o ajuste.
 run_step_force 30-plasma-panels    step_30_plasma_panels          || FAILED+=(30-plasma-panels)
+run_step 31-ipv4-only              step_31_ipv4_only              || FAILED+=(31-ipv4-only)
+run_step 32-rustdesk               step_32_rustdesk               || FAILED+=(32-rustdesk)
+run_step 33-rustdesk-guard         step_33_rustdesk_guard         || FAILED+=(33-rustdesk-guard)
 
 # ---------------------------------------------------------------------------
 # Resumo final

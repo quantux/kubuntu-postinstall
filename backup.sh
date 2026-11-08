@@ -81,13 +81,21 @@ echo "Parando containers com docker compose..."
 docker compose -f "$USER_HOME/.custom/docker-apps/docker-compose.yml" down
 
 # Caminhos de sistema que fazem parte da configuração "fora da home"
-# (defaults globais do KDE, login/sessão do SDDM, teclado e /etc/environment).
+# (defaults globais do KDE, login/sessão do SDDM, teclado, /etc/environment,
+# machine-id e estado do Tailscale).
+#
+# /etc/machine-id: preserva o UUID da máquina. O ID do RustDesk é ligado a ele;
+# restaurar o mesmo valor na mesma máquina evita um UUID_MISMATCH/reassign.
+# /var/lib/tailscale: chave/estado do nó Tailscale; preserva o IP 100.x e o
+# nome do nó (ex.: quantux-1) após a formatação.
 SYSTEM_PATHS=(
     /etc/xdg
     /etc/sddm.conf
     /etc/sddm.conf.d
     /etc/default/keyboard
     /etc/environment
+    /etc/machine-id
+    /var/lib/tailscale
 )
 BACKUP_PATHS=("$USER_HOME")
 for p in "${SYSTEM_PATHS[@]}"; do

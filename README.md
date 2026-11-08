@@ -106,6 +106,30 @@ resumo final — basta abrir o `<etapa>.log` para ver tudo o que aconteceu.
 Os logs são mantidos entre execuções (não são apagados pelo `reset_steps`),
 então dá para comparar uma execução que falhou com a tentativa seguinte.
 
+## RustDesk
+
+O RustDesk é instalado pelo **`.deb` oficial** (não há repositório APT oficial
+do cliente em 2026-11). As etapas novas são:
+
+| Etapa | O que faz |
+|---|---|
+| `31_ipv4_only.sh` | Desabilita IPv6 nas conexões Ethernet/Wi-Fi do NetworkManager (o gateway fica em modo 1, IPv4-only) |
+| `32_rustdesk.sh` | Baixa o `rustdesk-1.5.1-x86_64.deb` do GitHub, verifica o SHA-256 e instala; habilita o `rustdesk.service` |
+| `33_rustdesk_guard.sh` | Instala uma regra nftables que restringe o Direct IP (TCP 21118) a `tailscale0`/`lo` |
+
+A config do RustDesk fica em `~/.config/rustdesk` e é restaurada junto com a
+home pelo restic. Ela contém o ID, a chave e a senha permanente; o backup é
+criptografado pelo restic. O ID do host pode mudar se o `machine-id` mudar ou
+se o servidor reassinar; por isso `backup.sh` agora inclui `/etc/machine-id` e
+`/var/lib/tailscale` (estado do nó Tailscale, preserva o IP `100.x`). Se o ID
+mudar, use o fallback Direct IP via Tailscale (`100.123.8.18:21118`).
+
+Atualizações: rode `sudo ./rustdesk-update.sh` (baixa a última release do
+GitHub, verifica o digest quando disponível e reinstala). Não é um repositório
+APT; se quiser automatizar, crie um systemd timer chamando esse script. O app
+também tem checagem de atualização, mas o `.deb` não é atualizado pelo
+`apt upgrade`.
+
 ## Backup
 
 Executar `sudo ./backup.sh` ou usar o lembrete mensal `./remember_backup.sh`.
@@ -118,7 +142,9 @@ da configuração do KDE/ambiente:
 - `/etc/xdg` — defaults globais do KDE e autostart de sistema;
 - `/etc/sddm.conf` e `/etc/sddm.conf.d` — login/sessão/tema do SDDM;
 - `/etc/default/keyboard` — layout de teclado;
-- `/etc/environment`.
+- `/etc/environment`;
+- `/etc/machine-id` — UUID da máquina; preserva o ID do RustDesk na mesma máquina;
+- `/var/lib/tailscale` — estado/chave do nó Tailscale; preserva o IP `100.x` e o nome do nó.
 
 Arquivos que não existirem no sistema são ignorados silenciosamente.
 
