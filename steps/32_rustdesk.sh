@@ -8,8 +8,8 @@
 #
 # A config do usuário (~/.config/rustdesk) é restaurada pelo restic na etapa
 # 01; se ela existir, o ID/senha/Direct IP voltam junto. Se não existir, o
-# RustDesk criará um ID novo. Atualizações: use rustdesk-update.sh (não há
-# repositório APT oficial).
+# RustDesk criará um ID novo. Atualizações: baixe o .deb da release oficial
+# (não há repositório APT oficial; o .deb não é atualizado pelo apt upgrade).
 
 RUSTDESK_VERSION="${RUSTDESK_VERSION:-1.5.1}"
 # SHA-256 do rustdesk-1.5.1-x86_64.deb (release oficial).

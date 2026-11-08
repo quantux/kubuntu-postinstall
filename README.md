@@ -115,20 +115,19 @@ do cliente em 2026-11). As etapas novas são:
 |---|---|
 | `31_ipv4_only.sh` | Desabilita IPv6 nas conexões Ethernet/Wi-Fi do NetworkManager (o gateway fica em modo 1, IPv4-only) |
 | `32_rustdesk.sh` | Baixa o `rustdesk-1.5.1-x86_64.deb` do GitHub, verifica o SHA-256 e instala; habilita o `rustdesk.service` |
-| `33_rustdesk_guard.sh` | Instala uma regra nftables que restringe o Direct IP (TCP 21118) a `tailscale0`/`lo` |
+| `33_rustdesk_guard.sh` | Instala uma regra nftables que permite o Direct IP (TCP 21118) só na LAN `192.168.1.0/24`, em `tailscale0` e no loopback; bloqueia o resto |
 
 A config do RustDesk fica em `~/.config/rustdesk` e é restaurada junto com a
 home pelo restic. Ela contém o ID, a chave e a senha permanente; o backup é
 criptografado pelo restic. O ID do host pode mudar se o `machine-id` mudar ou
 se o servidor reassinar; por isso `backup.sh` agora inclui `/etc/machine-id` e
 `/var/lib/tailscale` (estado do nó Tailscale, preserva o IP `100.x`). Se o ID
-mudar, use o fallback Direct IP via Tailscale (`100.123.8.18:21118`).
+mudar, use o fallback Direct IP na LAN/Tailscale
+(`192.168.1.3:21118` via Pi ou `100.123.8.18:21118`).
 
-Atualizações: rode `sudo ./rustdesk-update.sh` (baixa a última release do
-GitHub, verifica o digest quando disponível e reinstala). Não é um repositório
-APT; se quiser automatizar, crie um systemd timer chamando esse script. O app
-também tem checagem de atualização, mas o `.deb` não é atualizado pelo
-`apt upgrade`.
+Atualizações: não há repositório APT oficial; baixe o `.deb` da release oficial
+do GitHub e instale com `apt` quando quiser atualizar. O app também tem
+checagem de atualização, mas o `.deb` não é atualizado pelo `apt upgrade`.
 
 ## Backup
 
