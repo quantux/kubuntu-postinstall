@@ -52,4 +52,5 @@ org.fedoraproject.MediaWriter
 io.anytype.anytype
 com.notesnook.Notesnook
 com.github.xournalpp.xournalpp
+net.jami.Jami
 
