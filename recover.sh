@@ -253,6 +253,7 @@ run_step_force 30-plasma-panels    step_30_plasma_panels          || FAILED+=(30
 run_step 31-ipv4-only              step_31_ipv4_only              || FAILED+=(31-ipv4-only)
 run_step 32-rustdesk               step_32_rustdesk               || FAILED+=(32-rustdesk)
 run_step 33-rustdesk-guard         step_33_rustdesk_guard         || FAILED+=(33-rustdesk-guard)
+run_step 34-audio-bt-soft-volume   step_34_audio_bt_soft_volume   || FAILED+=(34-audio-bt-soft-volume)
 
 # ---------------------------------------------------------------------------
 # Resumo final
