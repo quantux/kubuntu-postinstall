@@ -113,7 +113,7 @@ do cliente em 2026-11). As etapas novas são:
 
 | Etapa | O que faz |
 |---|---|
-| `31_ipv4_only.sh` | Desabilita IPv6 nas conexões Ethernet/Wi-Fi do NetworkManager (o gateway fica em modo 1, IPv4-only) |
+| `31_ipv6_auto.sh` | Garante IPv6 automático (SLAAC/DHCPv6) nas conexões Ethernet/Wi-Fi do NetworkManager (gateway em modo 3, IPv4+IPv6) |
 | `32_rustdesk.sh` | Baixa o `rustdesk-1.5.1-x86_64.deb` do GitHub, verifica o SHA-256 e instala; habilita o `rustdesk.service` |
 | `33_rustdesk_guard.sh` | Instala uma regra nftables que permite o Direct IP (TCP 21118) só na LAN `192.168.1.0/24`, em `tailscale0` e no loopback; bloqueia o resto |
 
